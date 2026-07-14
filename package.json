@@ -3,8 +3,8 @@
   "private": true,
   "packageManager": "pnpm@10.13.1",
   "scripts": {
-    "dev": "corepack pnpm --filter @forever-games/web dev",
-    "build": "corepack pnpm --filter @forever-games/web build",
+    "dev": "corepack pnpm db:generate && corepack pnpm --filter @forever-games/web dev",
+    "build": "corepack pnpm db:generate && corepack pnpm --filter @forever-games/web build",
     "lint": "corepack pnpm --filter @forever-games/web lint",
     "typecheck": "corepack pnpm --filter @forever-games/web typecheck",
     "test": "vitest run",
@@ -18,10 +18,10 @@
     "test:a11y": "playwright test --grep @a11y",
     "test:security": "vitest run tests/security",
     "test:performance": "vitest run tests/performance",
-    "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
+    "db:generate": "node scripts/run-prisma.mjs generate",
+    "db:migrate": "node scripts/run-prisma.mjs migrate dev --name local-change",
     "db:seed": "tsx packages/db/prisma/seed.ts",
-    "db:migration:test": "prisma validate --schema packages/db/prisma/schema.prisma"
+    "db:migration:test": "node scripts/run-prisma.mjs validate"
   },
   "devDependencies": {
     "@playwright/test": "1.53.2",
@@ -32,5 +32,8 @@
     "typescript": "5.8.3",
     "vitest": "3.2.4"
   },
-  "prisma": { "seed": "tsx packages/db/prisma/seed.ts" }
+  "prisma": { "seed": "tsx packages/db/prisma/seed.ts" },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "esbuild", "prisma", "sharp"]
+  }
 }

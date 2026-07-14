@@ -9,5 +9,6 @@ test-results/
 .env.*.local
 !.env.example
 *.log
+.tools/
 packages/db/prisma/dev.db*
-
+packages/db/generated/

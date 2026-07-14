@@ -1,4 +1,4 @@
-export type Game = {slug:string;title:string;year:number;publisher:string;platforms:string[];genre:string;access:"PURCHASED"|"SUBSCRIPTION_ACCESS";verified:boolean;physical:"DIGITAL_ONLY"|"PHYSICAL_AVAILABLE"|"UNKNOWN";reserved?:boolean;cover:string;description:string};
+export type Game = {slug:string;title:string;year:number;publisher:string;platforms:string[];genre:string;access:"PURCHASED"|"SUBSCRIPTION_ACCESS";verified:boolean;physical:"DIGITAL_ONLY"|"PHYSICAL_AVAILABLE"|"LIMITED_PHYSICAL"|"UNKNOWN"|"PARTNER_APPROVED_FUTURE";reserved?:boolean;cover:string;description:string};
 export const games: Game[] = [
  {slug:"signal-below",title:"Signal Below",year:2024,publisher:"Northstar Studio",platforms:["PC"],genre:"Adventure",access:"PURCHASED",verified:true,physical:"DIGITAL_ONLY",reserved:true,cover:"linear-gradient(145deg,#163747,#42a1a4)",description:"Descend through a drowned research station and piece together the signal that brought it back online."},
  {slug:"ashfall-circuit",title:"Ashfall Circuit",year:2022,publisher:"Ember Arc",platforms:["PC","Xbox"],genre:"Racing",access:"PURCHASED",verified:true,physical:"PHYSICAL_AVAILABLE",cover:"linear-gradient(145deg,#4c1e33,#e1774f)",description:"High-speed survival racing across the last volcanic highways."},
@@ -7,4 +7,3 @@ export const games: Game[] = [
  {slug:"hollow-frequency",title:"Hollow Frequency",year:2023,publisher:"Glass Hours",platforms:["PC"],genre:"Horror",access:"PURCHASED",verified:true,physical:"DIGITAL_ONLY",cover:"linear-gradient(145deg,#20222a,#a54b52)",description:"Tune a field radio to voices broadcasting from places that no longer exist."},
  {slug:"paper-kingdoms",title:"Paper Kingdoms",year:2019,publisher:"Folded Fox",platforms:["PC","Switch"],genre:"Puzzle",access:"PURCHASED",verified:true,physical:"PHYSICAL_AVAILABLE",cover:"linear-gradient(145deg,#64453d,#d9af73)",description:"Build and unfold a tiny kingdom where every crease changes the world."}
 ];
-
