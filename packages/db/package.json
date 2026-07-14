@@ -1,0 +1,2 @@
+{"name":"@forever-games/db","private":true,"scripts":{"generate":"prisma generate --schema prisma/schema.prisma"},"dependencies":{"@prisma/client":"6.11.1"}}
+

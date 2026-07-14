@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETION_PENDING
+  DELETED
+}
+enum ProviderCode {
+  MOCK_STEAM
+  STEAM
+  MANUAL
+}
+enum ConnectionStatus {
+  PENDING
+  CONNECTED
+  BLOCKED_PRIVACY
+  EXPIRED
+  ERROR
+  DISCONNECTED
+}
+enum SyncStatus {
+  QUEUED
+  RUNNING
+  RETRY_WAIT
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+enum AccessType {
+  PURCHASED
+  SUBSCRIPTION_ACCESS
+  FREE_ACCESS
+  IMPORTED
+  SELF_REPORTED
+  UNKNOWN
+}
+enum VerificationLevel {
+  VERIFIED_PROVIDER
+  VERIFIED_EVIDENCE
+  IMPORTED_UNVERIFIED
+  SELF_REPORTED
+}
+enum EntitlementStatus {
+  ACTIVE
+  NOT_SEEN
+  REMOVED_OR_INACCESSIBLE
+  DISPUTED
+}
+enum MappingStatus {
+  AUTO_MATCHED
+  APPROVED
+  AMBIGUOUS
+  UNMATCHED
+  REJECTED
+}
+enum PhysicalStatus {
+  PHYSICAL_AVAILABLE
+  DIGITAL_ONLY
+  LIMITED_PHYSICAL
+  UNKNOWN
+  PARTNER_APPROVED_FUTURE
+}
+enum ReservationStatus {
+  ACTIVE
+  CANCELLED
+  CONVERTED_TO_OFFER
+  EXPIRED
+}
+
+model User {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  displayName  String
+  region       String
+  status       UserStatus           @default(ACTIVE)
+  createdAt    DateTime             @default(now())
+  consents     Consent[]
+  connections  ProviderConnection[]
+  reservations Reservation[]
+}
+
+model Consent {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  version    String
+  accepted   Boolean
+  acceptedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, type, version])
+}
+
+model ProviderConnection {
+  id                   String           @id @default(cuid())
+  userId               String
+  provider             ProviderCode
+  externalAccountHash  String
+  status               ConnectionStatus @default(PENDING)
+  capabilities         String[]
+  credentialCiphertext String?
+  lastSyncedAt         DateTime?
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncRuns             SyncRun[]
+  entitlements         Entitlement[]
+  @@unique([provider, externalAccountHash])
+}
+
+model SyncRun {
+  id           String             @id @default(cuid())
+  connectionId String
+  status       SyncStatus         @default(QUEUED)
+  cursor       String?
+  imported     Int                @default(0)
+  mapped       Int                @default(0)
+  unmatched    Int                @default(0)
+  attempt      Int                @default(0)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  connection   ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+}
+
+model CatalogGame {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  title       String
+  description String?
+  publisher   String?
+  developer   String?
+  releaseYear Int?
+  genre       String?
+  releases    CatalogRelease[]
+  createdAt   DateTime         @default(now())
+}
+
+model CatalogRelease {
+  id             String         @id @default(cuid())
+  gameId         String
+  platform       String
+  region         String         @default("GLOBAL")
+  edition        String         @default("DIGITAL")
+  physicalStatus PhysicalStatus @default(UNKNOWN)
+  source         String
+  sourceRights   String
+  game           CatalogGame    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  entitlements   Entitlement[]
+  reservations   Reservation[]
+  mappings       ProductMapping[]
+  @@unique([gameId, platform, region, edition])
+}
+
+model ProductMapping {
+  id                String         @id @default(cuid())
+  provider          ProviderCode
+  externalProductId String
+  releaseId         String?
+  status            MappingStatus
+  confidence        Float?
+  method            String?
+  release           CatalogRelease? @relation(fields: [releaseId], references: [id])
+  @@unique([provider, externalProductId])
+}
+
+model Entitlement {
+  id                String              @id @default(cuid())
+  connectionId      String
+  externalProductId String
+  releaseId         String?
+  accessType        AccessType
+  verification      VerificationLevel
+  status            EntitlementStatus   @default(ACTIVE)
+  firstSeenAt       DateTime             @default(now())
+  lastSeenAt        DateTime             @default(now())
+  sourcePayloadHash String
+  connection        ProviderConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  release           CatalogRelease?     @relation(fields: [releaseId], references: [id])
+  @@unique([connectionId, externalProductId, accessType])
+}
+
+model Reservation {
+  id                 String              @id @default(cuid())
+  userId             String
+  releaseId          String
+  editionType        String
+  targetPriceBand    String
+  shippingCountry    String
+  platformPreference String?
+  disclosureVersion  String
+  status             ReservationStatus   @default(ACTIVE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  release            CatalogRelease       @relation(fields: [releaseId], references: [id])
+  history            ReservationHistory[]
+  @@unique([userId, releaseId, editionType])
+}
+
+model ReservationHistory {
+  id            String      @id @default(cuid())
+  reservationId String
+  action        String
+  snapshot      Json
+  createdAt     DateTime    @default(now())
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  action       String
+  resourceType String
+  resourceId   String?
+  reason       String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  @@index([createdAt])
+}
+
+model OutboxEvent {
+  id          String    @id @default(cuid())
+  type        String
+  aggregateId String
+  payload     Json
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+  @@index([publishedAt, createdAt])
+}
