@@ -1,4 +1,4 @@
-import { PrismaClient, AccessType, ConnectionStatus, PhysicalStatus, ProviderCode, SyncStatus, VerificationLevel } from "../generated/client/client";
+import { PrismaClient, AccessType, ConnectionStatus, PhysicalStatus, ProviderCode, SyncStatus, VerificationLevel } from "../generated/client-v3/client";
 import { createHash } from "node:crypto";
 
 try { process.loadEnvFile(".env.local"); } catch { /* CI can provide environment variables directly. */ }

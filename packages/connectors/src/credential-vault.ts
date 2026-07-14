@@ -1,0 +1,4 @@
+import {createCipheriv,createDecipheriv,createHash,randomBytes} from "node:crypto";
+const key=()=>{const source=process.env.FIELD_ENCRYPTION_KEY;if(!source)throw new Error("FIELD_ENCRYPTION_KEY is required");return createHash("sha256").update(source).digest()};
+export function encryptProviderToken(token:string){const iv=randomBytes(12);const cipher=createCipheriv("aes-256-gcm",key(),iv);const ciphertext=Buffer.concat([cipher.update(token,"utf8"),cipher.final()]);return{ciphertext:ciphertext.toString("base64"),iv:iv.toString("base64"),authTag:cipher.getAuthTag().toString("base64"),keyVersion:"local-v1"}}
+export function decryptProviderToken(value:{ciphertext:string;iv:string;authTag:string}){const decipher=createDecipheriv("aes-256-gcm",key(),Buffer.from(value.iv,"base64"));decipher.setAuthTag(Buffer.from(value.authTag,"base64"));return Buffer.concat([decipher.update(Buffer.from(value.ciphertext,"base64")),decipher.final()]).toString("utf8")}

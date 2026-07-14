@@ -1,0 +1,3 @@
+import {randomBytes} from "node:crypto";import {cookies} from "next/headers";import {NextResponse} from "next/server";import {requireUser} from "@/lib/session";import {beginSteamUrl,steamEnabled} from "@/lib/steam";
+export async function GET(){try{await requireUser()}catch{return NextResponse.redirect(new URL("/onboarding?next=/connections",process.env.PUBLIC_BASE_URL??"http://localhost:3000"))}if(!steamEnabled())return NextResponse.json({error:"Steam is not configured"},{status:503});const state=randomBytes(24).toString("base64url");(await cookies()).set("steam_openid_state",state,{httpOnly:true,sameSite:"lax",secure:false,path:"/",maxAge:600});return NextResponse.redirect(beginSteamUrl(state))}
+

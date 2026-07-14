@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "corepack pnpm db:generate && corepack pnpm --filter @forever-games/web dev",
-    "build": "corepack pnpm db:generate && corepack pnpm --filter @forever-games/web build",
+    "build": "corepack pnpm --filter @forever-games/web build",
     "lint": "corepack pnpm --filter @forever-games/web lint",
     "typecheck": "corepack pnpm --filter @forever-games/web typecheck",
     "test": "vitest run",

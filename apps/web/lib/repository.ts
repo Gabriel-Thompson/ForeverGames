@@ -1,14 +1,16 @@
 import { db } from "@forever-games/db";
 import { games as fallbackGames, type Game } from "./demo-data";
+import { currentUser } from "./session";
 
-const DEMO_EMAIL = "demo@forevergames.local";
+async function portalEmail(){return (await currentUser())?.email??"__unauthenticated__"}
 export type PortalSource = "database" | "synthetic-fallback";
 
 export async function getLibrary(): Promise<{ games: Game[]; source: PortalSource }> {
   try {
+    const email=await portalEmail();
     const records = await db.catalogGame.findMany({
-      where: { releases: { some: { entitlements: { some: { connection: { user: { email: DEMO_EMAIL } }, status: "ACTIVE" } } } } },
-      include: { releases: { include: { entitlements: { where: { connection: { user: { email: DEMO_EMAIL } } }, include: { connection: true } }, reservations: { where: { user: { email: DEMO_EMAIL }, status: "ACTIVE" } } } } },
+      where: { releases: { some: { entitlements: { some: { connection: { user: { email } }, status: "ACTIVE" } } } } },
+      include: { releases: { include: { entitlements: { where: { connection: { user: { email } } }, include: { connection: true } }, reservations: { where: { user: { email }, status: "ACTIVE" } } } } },
       orderBy: { title: "asc" },
     });
     const games = records.map((record): Game => {
@@ -21,10 +23,10 @@ export async function getLibrary(): Promise<{ games: Game[]; source: PortalSourc
         access: entitlement?.accessType === "SUBSCRIPTION_ACCESS" ? "SUBSCRIPTION_ACCESS" : "PURCHASED",
         verified: entitlement?.verification === "VERIFIED_PROVIDER" || entitlement?.verification === "VERIFIED_EVIDENCE",
         physical: releases[0]?.physicalStatus ?? "UNKNOWN", reserved: releases.some((release) => release.reservations.length > 0),
-        cover: fallback?.cover ?? "linear-gradient(145deg,#25314d,#63708a)", description: record.description ?? fallback?.description ?? "Catalog details pending.",
+        cover: record.slug.startsWith("steam-") ? `linear-gradient(transparent 45%,rgba(4,8,18,.78)),url("/api/v1/assets/steam/${record.slug.slice(6)}")` : fallback?.cover ?? "linear-gradient(145deg,#25314d,#63708a)", description: record.description ?? fallback?.description ?? "Catalog details pending.",
       };
     });
-    return { games: games.length ? games : fallbackGames, source: games.length ? "database" : "synthetic-fallback" };
+    return { games, source: "database" };
   } catch { return { games: fallbackGames, source: "synthetic-fallback" }; }
 }
 
@@ -37,7 +39,7 @@ export async function getDashboard() {
 }
 
 export async function getReservations() {
-  try { const rows=await db.reservation.findMany({where:{user:{email:DEMO_EMAIL}},include:{release:{include:{game:true}}},orderBy:{updatedAt:"desc"}});return{source:"database" as PortalSource,rows:rows.map(row=>({slug:row.release.game.slug,title:row.release.game.title,edition:row.editionType,price:row.targetPriceBand,region:row.shippingCountry,status:row.status}))}; }
+  try { const email=await portalEmail();const rows=await db.reservation.findMany({where:{user:{email}},include:{release:{include:{game:true}}},orderBy:{updatedAt:"desc"}});return{source:"database" as PortalSource,rows:rows.map(row=>({slug:row.release.game.slug,title:row.release.game.title,edition:row.editionType,price:row.targetPriceBand,region:row.shippingCountry,status:row.status}))}; }
   catch { return {source:"synthetic-fallback" as PortalSource,rows:[{slug:"signal-below",title:"Signal Below",edition:"STANDARD",price:"USD_30_39",region:"US",status:"ACTIVE"}]}; }
 }
 

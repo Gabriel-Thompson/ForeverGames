@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated/client"
+  output   = "../generated/client-v3"
 }
 
 datasource db {
@@ -87,6 +87,20 @@ model User {
   consents     Consent[]
   connections  ProviderConnection[]
   reservations Reservation[]
+  sessions     Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenHash    String   @unique
+  userAgent    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
 }
 
 model Consent {
@@ -105,6 +119,7 @@ model ProviderConnection {
   userId               String
   provider             ProviderCode
   externalAccountHash  String
+  externalAccountId    String?
   status               ConnectionStatus @default(PENDING)
   capabilities         String[]
   credentialCiphertext String?
@@ -112,7 +127,22 @@ model ProviderConnection {
   user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   syncRuns             SyncRun[]
   entitlements         Entitlement[]
+  credential           ProviderCredential?
   @@unique([provider, externalAccountHash])
+}
+
+model ProviderCredential {
+  id           String             @id @default(cuid())
+  connectionId String             @unique
+  ciphertext   String
+  iv           String
+  authTag      String
+  keyVersion   String
+  expiresAt    DateTime?
+  scopes       String[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  connection   ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 }
 
 model SyncRun {

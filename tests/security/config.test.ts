@@ -1,3 +1,2 @@
 import {describe,expect,it} from "vitest";import {readFileSync} from "node:fs";
-describe("secret hygiene",()=>{it("ignores local environment files",()=>{const ignore=readFileSync(".gitignore","utf8");expect(ignore).toContain(".env.local")});it("does not ship enabled checkout",()=>{const example=readFileSync(".env.example","utf8");expect(example).toContain("ENABLE_CHECKOUT=false")})});
-
+describe("secret hygiene",()=>{it("ignores local environment files",()=>{const ignore=readFileSync(".gitignore","utf8");expect(ignore).toContain(".env.local")});it("loads root local configuration without embedding secrets in the web app",()=>{const config=readFileSync("apps/web/next.config.ts","utf8");expect(config).toContain("../../.env.local");expect(config).not.toContain("postgresql://")});it("does not ship enabled checkout",()=>{const example=readFileSync(".env.example","utf8");expect(example).toContain("ENABLE_CHECKOUT=false")})});

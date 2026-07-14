@@ -1,0 +1,2 @@
+import {beforeEach,describe,expect,it} from "vitest";import {decryptProviderToken,encryptProviderToken} from "../../packages/connectors/src/credential-vault";
+describe("provider credential vault",()=>{beforeEach(()=>{process.env.FIELD_ENCRYPTION_KEY="local-test-key-not-for-production"});it("round trips without retaining plaintext",()=>{const encrypted=encryptProviderToken("provider-access-token");expect(encrypted.ciphertext).not.toContain("provider-access-token");expect(decryptProviderToken(encrypted)).toBe("provider-access-token")})});
