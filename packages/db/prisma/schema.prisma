@@ -14,9 +14,26 @@ enum UserStatus {
   DELETION_PENDING
   DELETED
 }
+enum UserRole {
+  MEMBER
+  SUPPORT
+  CURATOR
+  ANALYST
+  ADMIN
+}
+enum EvidenceValidationStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
 enum ProviderCode {
   MOCK_STEAM
   STEAM
+  XBOX_EVIDENCE
+  PLAYSTATION_EVIDENCE
+  NINTENDO_EVIDENCE
+  EPIC_EVIDENCE
+  GOG_EVIDENCE
   MANUAL
 }
 enum ConnectionStatus {
@@ -83,11 +100,47 @@ model User {
   displayName  String
   region       String
   status       UserStatus           @default(ACTIVE)
+  role         UserRole             @default(MEMBER)
   createdAt    DateTime             @default(now())
   consents     Consent[]
   connections  ProviderConnection[]
   reservations Reservation[]
   sessions     Session[]
+  evidence     PurchaseEvidence[]
+  partnershipVotes PartnershipVote[]
+}
+
+model PartnershipVote {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, provider])
+  @@index([provider])
+}
+
+model PurchaseEvidence {
+  id              String   @id @default(cuid())
+  userId          String
+  entitlementId   String   @unique
+  provider        ProviderCode
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  documentHash    String
+  storageRef      String
+  orderReference  String?
+  purchaseDate    DateTime?
+  importedAt      DateTime @default(now())
+  validationStatus EvidenceValidationStatus @default(PENDING_REVIEW)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entitlement     Entitlement @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+  @@index([userId, importedAt])
+  @@unique([userId, documentHash])
 }
 
 model Session {
@@ -168,6 +221,9 @@ model CatalogGame {
   developer   String?
   releaseYear Int?
   genre       String?
+  imageUrl    String?
+  metadataSource String?
+  externalStoreId String?
   releases    CatalogRelease[]
   createdAt   DateTime         @default(now())
 }
@@ -213,6 +269,7 @@ model Entitlement {
   sourcePayloadHash String
   connection        ProviderConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   release           CatalogRelease?     @relation(fields: [releaseId], references: [id])
+  evidence          PurchaseEvidence?
   @@unique([connectionId, externalProductId, accessType])
 }
 
@@ -224,6 +281,9 @@ model Reservation {
   targetPriceBand    String
   shippingCountry    String
   platformPreference String?
+  caseType            String?
+  extras              String[]
+  comments            String?
   disclosureVersion  String
   status             ReservationStatus   @default(ACTIVE)
   createdAt          DateTime             @default(now())
@@ -231,7 +291,17 @@ model Reservation {
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   release            CatalogRelease       @relation(fields: [releaseId], references: [id])
   history            ReservationHistory[]
+  commands           ReservationCommand[]
   @@unique([userId, releaseId, editionType])
+}
+
+model ReservationCommand {
+  id             String @id @default(cuid())
+  reservationId  String
+  idempotencyKey String @unique
+  response       Json
+  createdAt      DateTime @default(now())
+  reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 }
 
 model ReservationHistory {

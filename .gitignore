@@ -10,5 +10,6 @@ test-results/
 !.env.example
 *.log
 .tools/
+.data/
 packages/db/prisma/dev.db*
 packages/db/generated/

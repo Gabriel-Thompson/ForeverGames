@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import { db } from "@forever-games/db";
 import { games as fallbackGames, type Game } from "./demo-data";
 import { currentUser } from "./session";
@@ -10,27 +11,31 @@ export async function getLibrary(): Promise<{ games: Game[]; source: PortalSourc
     const email=await portalEmail();
     const records = await db.catalogGame.findMany({
       where: { releases: { some: { entitlements: { some: { connection: { user: { email } }, status: "ACTIVE" } } } } },
-      include: { releases: { include: { entitlements: { where: { connection: { user: { email } } }, include: { connection: true } }, reservations: { where: { user: { email }, status: "ACTIVE" } } } } },
+      include: { releases: { include: { entitlements: { where: { connection: { user: { email } } }, include: { connection: true, evidence: true } }, reservations: { where: { user: { email }, status: "ACTIVE" } } } } },
       orderBy: { title: "asc" },
     });
     const games = records.map((record): Game => {
       const releases = record.releases.filter((release) => release.entitlements.length > 0);
-      const entitlement = releases.flatMap((release) => release.entitlements)[0];
+      const allEntitlements = releases.flatMap((release) => release.entitlements.map(entitlement=>({entitlement,release})));const entitlement = allEntitlements.sort((a,b)=>a.entitlement.verification==="VERIFIED_PROVIDER"?-1:b.entitlement.verification==="VERIFIED_PROVIDER"?1:a.entitlement.verification==="VERIFIED_EVIDENCE"?-1:1)[0]?.entitlement;
       const fallback = fallbackGames.find((game) => game.slug === record.slug);
       return {
-        slug: record.slug, title: record.title, year: record.releaseYear ?? 0, publisher: record.publisher ?? "Unknown publisher",
+        slug: record.slug, title: record.title, year: record.releaseYear ?? 0, publisher: record.publisher ?? "Unknown publisher", developer: record.developer??undefined,
         platforms: [...new Set(releases.map((release) => release.platform))], genre: record.genre ?? "Unknown",
         access: entitlement?.accessType === "SUBSCRIPTION_ACCESS" ? "SUBSCRIPTION_ACCESS" : "PURCHASED",
-        verified: entitlement?.verification === "VERIFIED_PROVIDER" || entitlement?.verification === "VERIFIED_EVIDENCE",
+        verified: entitlement?.verification === "VERIFIED_PROVIDER" || entitlement?.verification === "VERIFIED_EVIDENCE", verification: entitlement?.verification,
+        accessSource: entitlement?.connection.provider.endsWith("_EVIDENCE") ? `${entitlement.connection.provider.replace("_EVIDENCE","").replaceAll("_"," ")} order evidence` : entitlement?.connection.provider === "STEAM" ? "Steam" : entitlement?.connection.provider.replaceAll("_"," "),
+        accessFreshness: entitlement?.connection.provider.endsWith("_EVIDENCE") ? `Imported ${entitlement.firstSeenAt.toLocaleDateString()}` : `Last seen ${entitlement?.lastSeenAt.toLocaleDateString()}`,
+        metadataSource: record.metadataSource ?? undefined,
+        entitlements: allEntitlements.map(({entitlement:item,release})=>({provider:item.connection.provider,platform:release.platform,access:item.accessType,verification:item.verification,status:item.status,firstSeen:item.firstSeenAt.toISOString(),lastSeen:item.lastSeenAt.toISOString(),evidenceStatus:item.evidence?.validationStatus})),
         physical: releases[0]?.physicalStatus ?? "UNKNOWN", reserved: releases.some((release) => release.reservations.length > 0),
-        cover: record.slug.startsWith("steam-") ? `linear-gradient(transparent 45%,rgba(4,8,18,.78)),url("/api/v1/assets/steam/${record.slug.slice(6)}")` : fallback?.cover ?? "linear-gradient(145deg,#25314d,#63708a)", description: record.description ?? fallback?.description ?? "Catalog details pending.",
+        cover: record.imageUrl ? `linear-gradient(transparent 45%,rgba(4,8,18,.5)),url("${record.imageUrl.replaceAll('"','%22')}")` : record.slug.startsWith("steam-") ? `linear-gradient(transparent 45%,rgba(4,8,18,.78)),url("/api/v1/assets/steam/${record.slug.slice(6)}")` : fallback?.cover ?? "linear-gradient(145deg,#25314d,#63708a)", description: record.description ?? fallback?.description ?? "Catalog details pending.",
       };
     });
     return { games, source: "database" };
   } catch { return { games: fallbackGames, source: "synthetic-fallback" }; }
 }
 
-export async function getGame(slug: string) { const library = await getLibrary(); return { game: library.games.find((game) => game.slug === slug), source: library.source }; }
+export async function getGame(slug:string){const library=await getLibrary();const game=library.games.find(item=>item.slug===slug);let demand={total:0,providerVerified:0,evidenceVerified:0,unverified:0,suppressed:true,asOf:new Date().toISOString()};try{const rows=await db.reservation.findMany({where:{status:"ACTIVE",release:{game:{slug}}},include:{user:{include:{connections:{include:{entitlements:{where:{release:{game:{slug}},status:"ACTIVE"}}}}}}}});for(const row of rows){const levels=row.user.connections.flatMap(connection=>connection.entitlements.map(item=>item.verification));if(levels.includes("VERIFIED_PROVIDER"))demand.providerVerified++;else if(levels.includes("VERIFIED_EVIDENCE"))demand.evidenceVerified++;else demand.unverified++}demand.total=rows.length;demand.suppressed=rows.length<Number(process.env.PUBLIC_DEMAND_MIN_CELL??3)}catch{}return{game,source:library.source,demand}}
 
 export async function getDashboard() {
   const library = await getLibrary();

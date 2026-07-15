@@ -13,7 +13,7 @@ const catalog = [
 ] as const;
 
 async function main() {
-  const user = await db.user.upsert({ where: { email: "demo@forevergames.local" }, update: {}, create: { email: "demo@forevergames.local", displayName: "Demo Collector", region: "US" } });
+  const user = await db.user.upsert({ where: { email: "demo@forevergames.local" }, update: {role:"ADMIN"}, create: { email: "demo@forevergames.local", displayName: "Demo Collector", region: "US",role:"ADMIN" } });
   for (const type of ["TERMS", "PRIVACY", "AGE_18"]) await db.consent.upsert({ where: { userId_type_version: { userId: user.id, type, version: "2026-07-13.1" } }, update: { accepted: true }, create: { userId: user.id, type, version: "2026-07-13.1", accepted: true } });
   const accountHash = createHash("sha256").update("synthetic-steam-001").digest("hex");
   const connection = await db.providerConnection.upsert({ where: { provider_externalAccountHash: { provider: ProviderCode.MOCK_STEAM, externalAccountHash: accountHash } }, update: { status: ConnectionStatus.CONNECTED, lastSyncedAt: new Date() }, create: { userId: user.id, provider: ProviderCode.MOCK_STEAM, externalAccountHash: accountHash, status: ConnectionStatus.CONNECTED, capabilities: ["AUTHENTICATE", "PROFILE_READ", "LIBRARY_READ", "PLAYTIME_READ"], lastSyncedAt: new Date() } });
