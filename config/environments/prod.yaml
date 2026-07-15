@@ -1,0 +1,4 @@
+environment: prod
+scaling: { minReplicas: 0, maxReplicas: 3 }
+database: { sku: Standard_B1ms, storageGiB: 32, backupRetentionDays: 7, geoRedundantBackup: false }
+features: { checkout: false, publicRegistration: false }

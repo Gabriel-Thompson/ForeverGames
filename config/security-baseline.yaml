@@ -1,0 +1,10 @@
+baseline:
+  tlsMinimum: '1.2'
+  publicDatabaseAccess: false
+  anonymousRegistryPull: false
+  keyVaultRbac: true
+  keyVaultPublicNetworkAccess: false
+  managedIdentityForRuntime: true
+  immutableImageTags: true
+  productionApprovalsRequired: true
+  secretScanningRequired: true

@@ -2,6 +2,9 @@
 import { db } from "@forever-games/db";
 import { games as fallbackGames, type Game } from "./demo-data";
 import { currentUser } from "./session";
+import { config } from "./config";
+
+function fallbackAllowed(){return config().ENABLE_SYNTHETIC_FALLBACK}
 
 async function portalEmail(){return (await currentUser())?.email??"__unauthenticated__"}
 export type PortalSource = "database" | "synthetic-fallback";
@@ -32,7 +35,7 @@ export async function getLibrary(): Promise<{ games: Game[]; source: PortalSourc
       };
     });
     return { games, source: "database" };
-  } catch { return { games: fallbackGames, source: "synthetic-fallback" }; }
+  } catch (error) { if(!fallbackAllowed())throw error;return { games: fallbackGames, source: "synthetic-fallback" }; }
 }
 
 export async function getGame(slug:string){const library=await getLibrary();const game=library.games.find(item=>item.slug===slug);let demand={total:0,providerVerified:0,evidenceVerified:0,unverified:0,suppressed:true,asOf:new Date().toISOString()};try{const rows=await db.reservation.findMany({where:{status:"ACTIVE",release:{game:{slug}}},include:{user:{include:{connections:{include:{entitlements:{where:{release:{game:{slug}},status:"ACTIVE"}}}}}}}});for(const row of rows){const levels=row.user.connections.flatMap(connection=>connection.entitlements.map(item=>item.verification));if(levels.includes("VERIFIED_PROVIDER"))demand.providerVerified++;else if(levels.includes("VERIFIED_EVIDENCE"))demand.evidenceVerified++;else demand.unverified++}demand.total=rows.length;demand.suppressed=rows.length<Number(process.env.PUBLIC_DEMAND_MIN_CELL??3)}catch{}return{game,source:library.source,demand}}
@@ -45,12 +48,16 @@ export async function getDashboard() {
 
 export async function getReservations() {
   try { const email=await portalEmail();const rows=await db.reservation.findMany({where:{user:{email}},include:{release:{include:{game:true}}},orderBy:{updatedAt:"desc"}});return{source:"database" as PortalSource,rows:rows.map(row=>({slug:row.release.game.slug,title:row.release.game.title,edition:row.editionType,price:row.targetPriceBand,region:row.shippingCountry,status:row.status}))}; }
-  catch { return {source:"synthetic-fallback" as PortalSource,rows:[{slug:"signal-below",title:"Signal Below",edition:"STANDARD",price:"USD_30_39",region:"US",status:"ACTIVE"}]}; }
+  catch (error) { if(!fallbackAllowed())throw error;return {source:"synthetic-fallback" as PortalSource,rows:[{slug:"signal-below",title:"Signal Below",edition:"STANDARD",price:"USD_30_39",region:"US",status:"ACTIVE"}]}; }
 }
 
 export async function getOperations() {
   try { const [users,runs,unmatched,reservations,audits]=await Promise.all([db.user.count({where:{status:"ACTIVE"}}),db.syncRun.findMany({include:{connection:true},orderBy:{completedAt:"desc"},take:5}),db.productMapping.count({where:{status:{in:["AMBIGUOUS","UNMATCHED"]}}}),db.reservation.count({where:{status:"ACTIVE"}}),db.auditLog.findMany({orderBy:{createdAt:"desc"},take:5})]);return{source:"database" as PortalSource,users,runs,unmatched,reservations,audits}; }
-  catch { return {source:"synthetic-fallback" as PortalSource,users:1,runs:[],unmatched:0,reservations:1,audits:[]}; }
+  catch (error) { if(!fallbackAllowed())throw error;return {source:"synthetic-fallback" as PortalSource,users:1,runs:[],unmatched:0,reservations:1,audits:[]}; }
 }
+
+type DemandBucket={label:string;count:number};
+export type DemandInsights={asOf:string;active:number;uniqueMembers:number;providerVerified:number;evidenceVerified:number;unverified:number;last7Days:number;previous7Days:number;momentumPercent:number|null;games:Array<DemandBucket&{slug:string;platform:string;providerVerified:number;evidenceVerified:number;unverified:number}>;platforms:DemandBucket[];editions:DemandBucket[];prices:DemandBucket[];regions:DemandBucket[];partnershipVotes:DemandBucket[]};
+export async function getDemandInsights():Promise<DemandInsights>{const empty={asOf:new Date().toISOString(),active:0,uniqueMembers:0,providerVerified:0,evidenceVerified:0,unverified:0,last7Days:0,previous7Days:0,momentumPercent:null,games:[],platforms:[],editions:[],prices:[],regions:[],partnershipVotes:[]};try{const [reservations,votes]=await Promise.all([db.reservation.findMany({where:{status:"ACTIVE"},include:{release:{include:{game:true}},user:{include:{connections:{include:{entitlements:{where:{status:"ACTIVE"}}}}}}},orderBy:{updatedAt:"desc"}}),db.partnershipVote.groupBy({by:["provider"],_count:{_all:true},orderBy:{_count:{provider:"desc"}}})]);const now=Date.now(),week=7*24*60*60*1000;const countMap=(map:Map<string,number>,label:string)=>map.set(label,(map.get(label)??0)+1);const platforms=new Map<string,number>(),editions=new Map<string,number>(),prices=new Map<string,number>(),regions=new Map<string,number>(),games=new Map<string,{label:string;slug:string;platform:string;count:number;providerVerified:number;evidenceVerified:number;unverified:number}>();let providerVerified=0,evidenceVerified=0,unverified=0,last7Days=0,previous7Days=0;for(const row of reservations){const levels=row.user.connections.flatMap(connection=>connection.entitlements.filter(item=>item.releaseId===row.releaseId).map(item=>item.verification));const tier=levels.includes("VERIFIED_PROVIDER")?"providerVerified":levels.includes("VERIFIED_EVIDENCE")?"evidenceVerified":"unverified";if(tier==="providerVerified")providerVerified++;else if(tier==="evidenceVerified")evidenceVerified++;else unverified++;const game=games.get(row.release.game.slug)??{label:row.release.game.title,slug:row.release.game.slug,platform:row.release.platform,count:0,providerVerified:0,evidenceVerified:0,unverified:0};game.count++;game[tier]++;games.set(row.release.game.slug,game);countMap(platforms,row.platformPreference||row.release.platform);countMap(editions,row.editionType);countMap(prices,row.targetPriceBand);countMap(regions,row.shippingCountry);const age=now-row.updatedAt.getTime();if(age<=week)last7Days++;else if(age<=2*week)previous7Days++}const buckets=(map:Map<string,number>)=>[...map.entries()].map(([label,count])=>({label,count})).sort((a,b)=>b.count-a.count);return{asOf:new Date().toISOString(),active:reservations.length,uniqueMembers:new Set(reservations.map(row=>row.userId)).size,providerVerified,evidenceVerified,unverified,last7Days,previous7Days,momentumPercent:previous7Days?Math.round((last7Days-previous7Days)/previous7Days*100):last7Days?100:null,games:[...games.values()].sort((a,b)=>b.count-a.count).slice(0,10),platforms:buckets(platforms),editions:buckets(editions),prices:buckets(prices),regions:buckets(regions),partnershipVotes:votes.map(row=>({label:row.provider,count:row._count._all}))}}catch{return empty}}
 
 export async function databaseStatus() { try { await db.$queryRaw`SELECT 1`; return "connected" as const; } catch { return "unavailable" as const; } }

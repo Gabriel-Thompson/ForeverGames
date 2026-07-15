@@ -1,0 +1,9 @@
+using '../main.bicep'
+param environment='dev'
+param location='centralus'
+param administratorPassword=readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD')
+param imageTag='replace-with-git-sha'
+param deployApplication=false
+param configureDns=false
+param budgetAmount=75
+param budgetStartDate='2026-07-01T00:00:00Z'

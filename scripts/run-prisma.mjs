@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
 try { process.loadEnvFile(join(root, ".env.local")); } catch { /* Commands may provide DATABASE_URL directly. */ }
+process.env.DIRECT_URL ??= process.env.DATABASE_URL;
 const tools = join(root, ".tools");
 mkdirSync(tools, { recursive: true });
 writeFileSync(join(tools, "pnpm.cmd"), "@echo off\r\ncorepack pnpm %*\r\n");

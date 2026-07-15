@@ -1,0 +1,30 @@
+name: Deploy production
+on:
+  workflow_dispatch:
+    inputs:
+      image_sha: { description: 'Previously verified staging Git SHA', required: true, type: string }
+permissions: { id-token: write, contents: read }
+concurrency: { group: deploy-production, cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with: { client-id: '${{ secrets.AZURE_CLIENT_ID }}', tenant-id: '${{ secrets.AZURE_TENANT_ID }}', subscription-id: '${{ secrets.AZURE_SUBSCRIPTION_ID }}' }
+      - name: Run migration before application revision
+        run: |
+          az containerapp job update -g rg-forevergames-prod -n caj-forevergames-prod-migrate --image ${{ vars.ACR_LOGIN_SERVER }}/forever-games-migrations:${{ inputs.image_sha }}
+          RESOURCE_GROUP=rg-forevergames-prod MIGRATION_JOB_NAME=caj-forevergames-prod-migrate ./scripts/run-migrations.sh
+      - id: stable
+        run: echo "revision=$(az containerapp revision list -g rg-forevergames-prod -n ca-forevergames-prod-web --query '[?properties.trafficWeight > `0`].name | [0]' -o tsv 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+      - name: Deploy with current revision retaining traffic
+        env: { POSTGRES_ADMIN_PASSWORD: '${{ secrets.POSTGRES_ADMIN_PASSWORD }}' }
+        run: az deployment sub create --location centralus --template-file infra/main.bicep --parameters infra/parameters/prod.bicepparam imageTag=${{ inputs.image_sha }} deployApplication=true stableRevisionName=${{ steps.stable.outputs.revision }}
+      - name: Smoke test candidate and shift traffic
+        run: |
+          candidate=$(az containerapp revision list -g rg-forevergames-prod -n ca-forevergames-prod-web --query "sort_by([], &properties.createdTime)[-1].name" -o tsv)
+          az containerapp revision label add -g rg-forevergames-prod -n ca-forevergames-prod-web --revision "$candidate" --label candidate --yes
+          BASE_URL=https://candidate.${{ vars.CONTAINER_APP_FQDN }} ./scripts/smoke-test.sh
+          az containerapp ingress traffic set -g rg-forevergames-prod -n ca-forevergames-prod-web --revision-weight "${candidate}=100"

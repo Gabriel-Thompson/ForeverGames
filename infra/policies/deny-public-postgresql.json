@@ -1,0 +1,1 @@
+{"properties":{"displayName":"Forever Games - deny public PostgreSQL","policyType":"Custom","mode":"Indexed","parameters":{},"policyRule":{"if":{"allOf":[{"field":"type","equals":"Microsoft.DBforPostgreSQL/flexibleServers"},{"field":"Microsoft.DBforPostgreSQL/flexibleServers/network.publicNetworkAccess","notEquals":"Disabled"}]},"then":{"effect":"deny"}}}}
