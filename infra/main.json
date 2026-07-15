@@ -1,0 +1,2132 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.45.15.27210",
+      "templateHash": "2364958296184785891"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ]
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "centralus"
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "[format('rg-forevergames-{0}', parameters('environment'))]"
+    },
+    "administratorLogin": {
+      "type": "string",
+      "defaultValue": "fgadmin"
+    },
+    "administratorPassword": {
+      "type": "securestring"
+    },
+    "imageTag": {
+      "type": "string"
+    },
+    "stableRevisionName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "deployApplication": {
+      "type": "bool",
+      "defaultValue": false
+    },
+    "configureDns": {
+      "type": "bool",
+      "defaultValue": false
+    },
+    "dnsZoneResourceGroup": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "dnsZoneName": {
+      "type": "string",
+      "defaultValue": "myforevergames.com"
+    },
+    "dnsVerificationId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "budgetAmount": {
+      "type": "int",
+      "defaultValue": 100
+    },
+    "budgetStartDate": {
+      "type": "string"
+    },
+    "budgetContactEmails": {
+      "type": "array",
+      "defaultValue": []
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "application": "forever-games",
+        "environment": "[parameters('environment')]",
+        "managedBy": "bicep"
+      }
+    }
+  },
+  "resources": {
+    "rg": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "resource-group",
+      "location": "[deployment().location]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('resourceGroupName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "15292724881028502206"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Resources/resourceGroups",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "network",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('vnet-forevergames-{0}', parameters('environment'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "addressSpace": {
+            "value": "10.20.0.0/16"
+          },
+          "containerAppsSubnetPrefix": {
+            "value": "10.20.0.0/23"
+          },
+          "postgresSubnetPrefix": {
+            "value": "10.20.2.0/24"
+          },
+          "privateEndpointsSubnetPrefix": {
+            "value": "10.20.3.0/24"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "11489165509375539825"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "addressSpace": {
+              "type": "string"
+            },
+            "containerAppsSubnetPrefix": {
+              "type": "string"
+            },
+            "postgresSubnetPrefix": {
+              "type": "string"
+            },
+            "privateEndpointsSubnetPrefix": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2024-05-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('addressSpace')]"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "snet-containerapps",
+                    "properties": {
+                      "addressPrefix": "[parameters('containerAppsSubnetPrefix')]",
+                      "delegations": [
+                        {
+                          "name": "container-apps",
+                          "properties": {
+                            "serviceName": "Microsoft.App/environments"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "snet-postgresql",
+                    "properties": {
+                      "addressPrefix": "[parameters('postgresSubnetPrefix')]",
+                      "delegations": [
+                        {
+                          "name": "postgres-flexible",
+                          "properties": {
+                            "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "snet-private-endpoints",
+                    "properties": {
+                      "addressPrefix": "[parameters('privateEndpointsSubnetPrefix')]",
+                      "privateEndpointNetworkPolicies": "Disabled"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('name'))]"
+            },
+            "containerAppsSubnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('name'), 'snet-containerapps')]"
+            },
+            "postgresSubnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('name'), 'snet-postgresql')]"
+            },
+            "privateEndpointsSubnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('name'), 'snet-private-endpoints')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "rg"
+      ]
+    },
+    "dnsPrivate": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "private-dns",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetId": {
+            "value": "[reference('network').outputs.id.value]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "6168058167969223933"
+            }
+          },
+          "parameters": {
+            "vnetId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.postgres.database.azure.com",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.postgres.database.azure.com', format('link-forevergames-{0}', parameters('environment')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('vnetId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.vaultcore.azure.net",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', format('link-forevergames-{0}', parameters('environment')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('vnetId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "postgresZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+            },
+            "vaultZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "network",
+        "rg"
+      ]
+    },
+    "identities": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "identities",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "10743595007599166210"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('id-forevergames-{0}-migration', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('id-forevergames-{0}-runtime', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "migrationIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-forevergames-{0}-migration', parameters('environment')))]"
+            },
+            "migrationPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-forevergames-{0}-migration', parameters('environment'))), '2023-01-31').principalId]"
+            },
+            "migrationClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-forevergames-{0}-migration', parameters('environment'))), '2023-01-31').clientId]"
+            },
+            "runtimeIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-forevergames-{0}-runtime', parameters('environment')))]"
+            },
+            "runtimePrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-forevergames-{0}-runtime', parameters('environment'))), '2023-01-31').principalId]"
+            },
+            "runtimeClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-forevergames-{0}-runtime', parameters('environment'))), '2023-01-31').clientId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "rg"
+      ]
+    },
+    "registry": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "registry",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "10986478757482489634"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string",
+              "allowedValues": [
+                "dev",
+                "staging",
+                "prod"
+              ]
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "Basic"
+            }
+          },
+          "variables": {
+            "registryName": "[if(equals(parameters('environment'), 'prod'), 'acrforevergamesprod', if(equals(parameters('environment'), 'staging'), 'acrforevergamesstaging', 'acrforevergamesdev'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[variables('registryName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              },
+              "properties": {
+                "adminUserEnabled": false,
+                "publicNetworkAccess": "Enabled"
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', variables('registryName'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[variables('registryName')]"
+            },
+            "loginServer": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('registryName')), '2023-07-01').loginServer]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "rg"
+      ]
+    },
+    "monitoring": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "monitoring",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "retentionDays": {
+            "value": 30
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "5900729746128405662"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "retentionDays": {
+              "type": "int",
+              "defaultValue": 30
+            }
+          },
+          "resources": {
+            "workspace": {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('log-forevergames-{0}', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "retentionInDays": "[parameters('retentionDays')]",
+                "features": {
+                  "enableLogAccessUsingOnlyResourcePermissions": true
+                },
+                "sku": {
+                  "name": "PerGB2018"
+                }
+              }
+            },
+            "insights": {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('appi-forevergames-{0}', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-forevergames-{0}', parameters('environment')))]",
+                "IngestionMode": "LogAnalytics",
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              },
+              "dependsOn": [
+                "workspace"
+              ]
+            }
+          },
+          "outputs": {
+            "workspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-forevergames-{0}', parameters('environment')))]"
+            },
+            "workspaceCustomerId": {
+              "type": "string",
+              "value": "[reference('workspace').customerId]"
+            },
+            "appInsightsId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/components', format('appi-forevergames-{0}', parameters('environment')))]"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[reference('insights').ConnectionString]"
+            },
+            "workspaceSharedKey": {
+              "type": "securestring",
+              "value": "[listKeys('workspace', '2023-09-01').primarySharedKey]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "rg"
+      ]
+    },
+    "vault": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "vault",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "tenantId": {
+            "value": "[tenant().tenantId]"
+          },
+          "purgeProtection": {
+            "value": "[equals(parameters('environment'), 'prod')]"
+          },
+          "privateEndpointsSubnetId": {
+            "value": "[reference('network').outputs.privateEndpointsSubnetId.value]"
+          },
+          "privateDnsZoneId": {
+            "value": "[reference('dnsPrivate').outputs.vaultZoneId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "11304258654244809007"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "tenantId": {
+              "type": "string"
+            },
+            "purgeProtection": {
+              "type": "bool"
+            },
+            "privateEndpointsSubnetId": {
+              "type": "string"
+            },
+            "privateDnsZoneId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-07-01",
+              "name": "[take(format('kv-forevergames-{0}', parameters('environment')), 24)]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "tenantId": "[parameters('tenantId')]",
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "enableRbacAuthorization": true,
+                "enablePurgeProtection": "[parameters('purgeProtection')]",
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 90,
+                "publicNetworkAccess": "Disabled",
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "Deny"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2024-05-01",
+              "name": "[format('pe-{0}', take(format('kv-forevergames-{0}', parameters('environment')), 24))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('privateEndpointsSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "vault",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.KeyVault/vaults', take(format('kv-forevergames-{0}', parameters('environment')), 24))]",
+                      "groupIds": [
+                        "vault"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', take(format('kv-forevergames-{0}', parameters('environment')), 24))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', take(format('kv-forevergames-{0}', parameters('environment')), 24)), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "vault",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('privateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', take(format('kv-forevergames-{0}', parameters('environment')), 24)))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', take(format('kv-forevergames-{0}', parameters('environment')), 24))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[take(format('kv-forevergames-{0}', parameters('environment')), 24)]"
+            },
+            "uri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', take(format('kv-forevergames-{0}', parameters('environment')), 24)), '2023-07-01').vaultUri]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "dnsPrivate",
+        "network",
+        "rg"
+      ]
+    },
+    "postgres": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "postgres",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "delegatedSubnetId": {
+            "value": "[reference('network').outputs.postgresSubnetId.value]"
+          },
+          "privateDnsZoneId": {
+            "value": "[reference('dnsPrivate').outputs.postgresZoneId.value]"
+          },
+          "administratorLogin": {
+            "value": "[parameters('administratorLogin')]"
+          },
+          "administratorPassword": {
+            "value": "[parameters('administratorPassword')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "93431706287688186"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "delegatedSubnetId": {
+              "type": "string"
+            },
+            "privateDnsZoneId": {
+              "type": "string"
+            },
+            "administratorLogin": {
+              "type": "string"
+            },
+            "administratorPassword": {
+              "type": "securestring"
+            },
+            "postgresVersion": {
+              "type": "string",
+              "defaultValue": "16"
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "Standard_B1ms"
+            },
+            "storageSizeGB": {
+              "type": "int",
+              "defaultValue": 32
+            },
+            "backupRetentionDays": {
+              "type": "int",
+              "defaultValue": 7
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2024-08-01",
+              "name": "[take(format('psql-forevergames-{0}', parameters('environment')), 63)]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "Burstable"
+              },
+              "properties": {
+                "version": "[parameters('postgresVersion')]",
+                "administratorLogin": "[parameters('administratorLogin')]",
+                "administratorLoginPassword": "[parameters('administratorPassword')]",
+                "network": {
+                  "delegatedSubnetResourceId": "[parameters('delegatedSubnetId')]",
+                  "privateDnsZoneArmResourceId": "[parameters('privateDnsZoneId')]",
+                  "publicNetworkAccess": "Disabled"
+                },
+                "storage": {
+                  "storageSizeGB": "[parameters('storageSizeGB')]",
+                  "autoGrow": "Enabled"
+                },
+                "backup": {
+                  "backupRetentionDays": "[parameters('backupRetentionDays')]",
+                  "geoRedundantBackup": "Disabled"
+                },
+                "highAvailability": {
+                  "mode": "Disabled"
+                },
+                "authConfig": {
+                  "activeDirectoryAuth": "Enabled",
+                  "passwordAuth": "Enabled"
+                },
+                "dataEncryption": {
+                  "type": "SystemManaged"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/configurations",
+              "apiVersion": "2024-08-01",
+              "name": "[format('{0}/{1}', take(format('psql-forevergames-{0}', parameters('environment')), 63), 'require_secure_transport')]",
+              "properties": {
+                "value": "on",
+                "source": "user-override"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', take(format('psql-forevergames-{0}', parameters('environment')), 63))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', take(format('psql-forevergames-{0}', parameters('environment')), 63))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[take(format('psql-forevergames-{0}', parameters('environment')), 63)]"
+            },
+            "fqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', take(format('psql-forevergames-{0}', parameters('environment')), 63)), '2024-08-01').fullyQualifiedDomainName]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "dnsPrivate",
+        "network",
+        "rg"
+      ]
+    },
+    "alerts": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "alerts",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "postgresId": {
+            "value": "[reference('postgres').outputs.id.value]"
+          },
+          "contactEmails": {
+            "value": "[parameters('budgetContactEmails')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "12230086388411119691"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "postgresId": {
+              "type": "string"
+            },
+            "contactEmails": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/actionGroups",
+              "apiVersion": "2023-01-01",
+              "name": "[format('ag-forevergames-{0}', parameters('environment'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "emailReceivers",
+                    "count": "[length(parameters('contactEmails'))]",
+                    "input": {
+                      "name": "[format('operator-{0}', copyIndex('emailReceivers'))]",
+                      "emailAddress": "[parameters('contactEmails')[copyIndex('emailReceivers')]]",
+                      "useCommonAlertSchema": true
+                    }
+                  }
+                ],
+                "groupShortName": "[take(format('fg-{0}', parameters('environment')), 12)]",
+                "enabled": true
+              }
+            },
+            {
+              "copy": {
+                "name": "databaseAlerts",
+                "count": "[length(createArray(createObject('name', 'cpu-high', 'metric', 'cpu_percent', 'threshold', 80), createObject('name', 'storage-high', 'metric', 'storage_percent', 'threshold', 80), createObject('name', 'connections-high', 'metric', 'active_connections', 'threshold', 80)))]"
+              },
+              "type": "Microsoft.Insights/metricAlerts",
+              "apiVersion": "2018-03-01",
+              "name": "[format('alert-forevergames-{0}-db-{1}', parameters('environment'), createArray(createObject('name', 'cpu-high', 'metric', 'cpu_percent', 'threshold', 80), createObject('name', 'storage-high', 'metric', 'storage_percent', 'threshold', 80), createObject('name', 'connections-high', 'metric', 'active_connections', 'threshold', 80))[copyIndex()].name)]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "description": "[format('Forever Games PostgreSQL {0}; tune after baseline collection.', createArray(createObject('name', 'cpu-high', 'metric', 'cpu_percent', 'threshold', 80), createObject('name', 'storage-high', 'metric', 'storage_percent', 'threshold', 80), createObject('name', 'connections-high', 'metric', 'active_connections', 'threshold', 80))[copyIndex()].name)]",
+                "severity": 2,
+                "enabled": true,
+                "scopes": [
+                  "[parameters('postgresId')]"
+                ],
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT15M",
+                "criteria": {
+                  "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+                  "allOf": [
+                    {
+                      "name": "[createArray(createObject('name', 'cpu-high', 'metric', 'cpu_percent', 'threshold', 80), createObject('name', 'storage-high', 'metric', 'storage_percent', 'threshold', 80), createObject('name', 'connections-high', 'metric', 'active_connections', 'threshold', 80))[copyIndex()].name]",
+                      "metricNamespace": "Microsoft.DBforPostgreSQL/flexibleServers",
+                      "metricName": "[createArray(createObject('name', 'cpu-high', 'metric', 'cpu_percent', 'threshold', 80), createObject('name', 'storage-high', 'metric', 'storage_percent', 'threshold', 80), createObject('name', 'connections-high', 'metric', 'active_connections', 'threshold', 80))[copyIndex()].metric]",
+                      "operator": "GreaterThan",
+                      "threshold": "[createArray(createObject('name', 'cpu-high', 'metric', 'cpu_percent', 'threshold', 80), createObject('name', 'storage-high', 'metric', 'storage_percent', 'threshold', 80), createObject('name', 'connections-high', 'metric', 'active_connections', 'threshold', 80))[copyIndex()].threshold]",
+                      "timeAggregation": "Average",
+                      "criterionType": "StaticThresholdCriterion"
+                    }
+                  ]
+                },
+                "actions": "[if(empty(parameters('contactEmails')), createArray(), createArray(createObject('actionGroupId', resourceId('Microsoft.Insights/actionGroups', format('ag-forevergames-{0}', parameters('environment'))))))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/actionGroups', format('ag-forevergames-{0}', parameters('environment')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "actionGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/actionGroups', format('ag-forevergames-{0}', parameters('environment')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "postgres",
+        "rg"
+      ]
+    },
+    "appEnvironment": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "container-app-environment",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "infrastructureSubnetId": {
+            "value": "[reference('network').outputs.containerAppsSubnetId.value]"
+          },
+          "workspaceCustomerId": {
+            "value": "[reference('monitoring').outputs.workspaceCustomerId.value]"
+          },
+          "workspaceSharedKey": {
+            "value": "[listOutputsWithSecureValues('monitoring', '2025-04-01').workspaceSharedKey]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "5219657703687895537"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "infrastructureSubnetId": {
+              "type": "string"
+            },
+            "workspaceCustomerId": {
+              "type": "string"
+            },
+            "workspaceSharedKey": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-03-01",
+              "name": "[format('cae-forevergames-{0}', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "vnetConfiguration": {
+                  "infrastructureSubnetId": "[parameters('infrastructureSubnetId')]",
+                  "internal": false
+                },
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[parameters('workspaceCustomerId')]",
+                    "sharedKey": "[parameters('workspaceSharedKey')]"
+                  }
+                },
+                "zoneRedundant": false
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', format('cae-forevergames-{0}', parameters('environment')))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[format('cae-forevergames-{0}', parameters('environment'))]"
+            },
+            "defaultDomain": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/managedEnvironments', format('cae-forevergames-{0}', parameters('environment'))), '2024-03-01').defaultDomain]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "monitoring",
+        "network",
+        "rg"
+      ]
+    },
+    "diagnostics": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "diagnostics",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "workspaceId": {
+            "value": "[reference('monitoring').outputs.workspaceId.value]"
+          },
+          "postgresName": {
+            "value": "[reference('postgres').outputs.name.value]"
+          },
+          "keyVaultName": {
+            "value": "[reference('vault').outputs.name.value]"
+          },
+          "containerAppEnvironmentName": {
+            "value": "[reference('appEnvironment').outputs.name.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "11956239570618589171"
+            }
+          },
+          "parameters": {
+            "workspaceId": {
+              "type": "string"
+            },
+            "postgresName": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "containerAppEnvironmentName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresName'))]",
+              "name": "log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('workspaceId')]",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+              "name": "log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('workspaceId')]",
+                "logs": [
+                  {
+                    "category": "AuditEvent",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvironmentName'))]",
+              "name": "log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('workspaceId')]",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "appEnvironment",
+        "monitoring",
+        "postgres",
+        "vault"
+      ]
+    },
+    "roles": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "roles",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "acrName": {
+            "value": "[reference('registry').outputs.name.value]"
+          },
+          "keyVaultName": {
+            "value": "[reference('vault').outputs.name.value]"
+          },
+          "postgresName": {
+            "value": "[reference('postgres').outputs.name.value]"
+          },
+          "runtimePrincipalId": {
+            "value": "[reference('identities').outputs.runtimePrincipalId.value]"
+          },
+          "migrationPrincipalId": {
+            "value": "[reference('identities').outputs.migrationPrincipalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "1064662861355351371"
+            }
+          },
+          "parameters": {
+            "acrName": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "postgresName": {
+              "type": "string"
+            },
+            "runtimePrincipalId": {
+              "type": "string"
+            },
+            "migrationPrincipalId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+              "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), parameters('runtimePrincipalId'), 'acrpull')]",
+              "properties": {
+                "principalId": "[parameters('runtimePrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+              "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), parameters('migrationPrincipalId'), 'acrpull')]",
+              "properties": {
+                "principalId": "[parameters('migrationPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('runtimePrincipalId'), 'secrets-user')]",
+              "properties": {
+                "principalId": "[parameters('runtimePrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('migrationPrincipalId'), 'secrets-user')]",
+              "properties": {
+                "principalId": "[parameters('migrationPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresName'))]",
+              "name": "[guid(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresName')), parameters('migrationPrincipalId'), 'postgres-contributor')]",
+              "properties": {
+                "principalId": "[parameters('migrationPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5f2e7ae8-9b47-4f8c-ae3a-4fe89d29e279')]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "identities",
+        "postgres",
+        "registry",
+        "rg",
+        "vault"
+      ]
+    },
+    "migrationJob": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "migration-job",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "environmentId": {
+            "value": "[reference('appEnvironment').outputs.id.value]"
+          },
+          "image": {
+            "value": "[format('{0}/forever-games-migrations:{1}', reference('registry').outputs.loginServer.value, parameters('imageTag'))]"
+          },
+          "registryServer": {
+            "value": "[reference('registry').outputs.loginServer.value]"
+          },
+          "keyVaultUri": {
+            "value": "[reference('vault').outputs.uri.value]"
+          },
+          "migrationIdentityId": {
+            "value": "[reference('identities').outputs.migrationIdentityId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "1988356345537468394"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "environmentId": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "registryServer": {
+              "type": "string"
+            },
+            "keyVaultUri": {
+              "type": "string"
+            },
+            "migrationIdentityId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/jobs",
+              "apiVersion": "2024-03-01",
+              "name": "[format('caj-forevergames-{0}-migrate', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned, UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('migrationIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "environmentId": "[parameters('environmentId')]",
+                "configuration": {
+                  "triggerType": "Manual",
+                  "replicaTimeout": 1800,
+                  "replicaRetryLimit": 0,
+                  "registries": [
+                    {
+                      "server": "[parameters('registryServer')]",
+                      "identity": "[parameters('migrationIdentityId')]"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "direct-url",
+                      "keyVaultUrl": "[format('{0}secrets/DIRECT-URL', parameters('keyVaultUri'))]",
+                      "identity": "[parameters('migrationIdentityId')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "migration",
+                      "image": "[parameters('image')]",
+                      "command": [
+                        "node",
+                        "scripts/migrate-deploy.mjs"
+                      ],
+                      "env": [
+                        {
+                          "name": "NODE_ENV",
+                          "value": "production"
+                        },
+                        {
+                          "name": "DIRECT_URL",
+                          "secretRef": "direct-url"
+                        }
+                      ],
+                      "resources": {
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[format('caj-forevergames-{0}-migrate', parameters('environment'))]"
+            },
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/jobs', format('caj-forevergames-{0}-migrate', parameters('environment')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "appEnvironment",
+        "identities",
+        "registry",
+        "roles",
+        "vault"
+      ]
+    },
+    "app": {
+      "condition": "[parameters('deployApplication')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "application",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "environmentId": {
+            "value": "[reference('appEnvironment').outputs.id.value]"
+          },
+          "image": {
+            "value": "[format('{0}/forever-games-web:{1}', reference('registry').outputs.loginServer.value, parameters('imageTag'))]"
+          },
+          "registryServer": {
+            "value": "[reference('registry').outputs.loginServer.value]"
+          },
+          "keyVaultUri": {
+            "value": "[reference('vault').outputs.uri.value]"
+          },
+          "runtimeIdentityId": {
+            "value": "[reference('identities').outputs.runtimeIdentityId.value]"
+          },
+          "stableRevisionName": {
+            "value": "[parameters('stableRevisionName')]"
+          },
+          "minReplicas": {
+            "value": 0
+          },
+          "maxReplicas": {
+            "value": 3
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "9907033384576768675"
+            }
+          },
+          "parameters": {
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "environmentId": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "registryServer": {
+              "type": "string"
+            },
+            "keyVaultUri": {
+              "type": "string"
+            },
+            "runtimeIdentityId": {
+              "type": "string"
+            },
+            "stableRevisionName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "minReplicas": {
+              "type": "int",
+              "defaultValue": 0
+            },
+            "maxReplicas": {
+              "type": "int",
+              "defaultValue": 3
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "[format('ca-forevergames-{0}-web', parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned, UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('runtimeIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "managedEnvironmentId": "[parameters('environmentId')]",
+                "configuration": {
+                  "activeRevisionsMode": "Multiple",
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 3000,
+                    "allowInsecure": false,
+                    "transport": "auto",
+                    "traffic": "[if(empty(parameters('stableRevisionName')), createArray(createObject('latestRevision', true(), 'weight', 100)), createArray(createObject('revisionName', parameters('stableRevisionName'), 'weight', 100)))]"
+                  },
+                  "registries": [
+                    {
+                      "server": "[parameters('registryServer')]",
+                      "identity": "[parameters('runtimeIdentityId')]"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "database-url",
+                      "keyVaultUrl": "[format('{0}secrets/DATABASE-URL', parameters('keyVaultUri'))]",
+                      "identity": "[parameters('runtimeIdentityId')]"
+                    },
+                    {
+                      "name": "direct-url",
+                      "keyVaultUrl": "[format('{0}secrets/DIRECT-URL', parameters('keyVaultUri'))]",
+                      "identity": "[parameters('runtimeIdentityId')]"
+                    },
+                    {
+                      "name": "session-secret",
+                      "keyVaultUrl": "[format('{0}secrets/SESSION-SECRET', parameters('keyVaultUri'))]",
+                      "identity": "[parameters('runtimeIdentityId')]"
+                    },
+                    {
+                      "name": "field-encryption-key",
+                      "keyVaultUrl": "[format('{0}secrets/FIELD-ENCRYPTION-KEY', parameters('keyVaultUri'))]",
+                      "identity": "[parameters('runtimeIdentityId')]"
+                    },
+                    {
+                      "name": "steam-api-key",
+                      "keyVaultUrl": "[format('{0}secrets/STEAM-WEB-API-KEY', parameters('keyVaultUri'))]",
+                      "identity": "[parameters('runtimeIdentityId')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "revisionSuffix": "[take(uniqueString(parameters('image')), 10)]",
+                  "containers": [
+                    {
+                      "name": "web",
+                      "image": "[parameters('image')]",
+                      "env": [
+                        {
+                          "name": "NODE_ENV",
+                          "value": "production"
+                        },
+                        {
+                          "name": "APP_ENV",
+                          "value": "[if(equals(parameters('environment'), 'prod'), 'production', parameters('environment'))]"
+                        },
+                        {
+                          "name": "PUBLIC_BASE_URL",
+                          "value": "[if(equals(parameters('environment'), 'prod'), 'https://myforevergames.com', format('https://{0}.myforevergames.com', parameters('environment')))]"
+                        },
+                        {
+                          "name": "CANONICAL_DOMAIN",
+                          "value": "[if(equals(parameters('environment'), 'prod'), 'myforevergames.com', format('{0}.myforevergames.com', parameters('environment')))]"
+                        },
+                        {
+                          "name": "DATABASE_URL",
+                          "secretRef": "database-url"
+                        },
+                        {
+                          "name": "DIRECT_URL",
+                          "secretRef": "direct-url"
+                        },
+                        {
+                          "name": "SESSION_SECRET",
+                          "secretRef": "session-secret"
+                        },
+                        {
+                          "name": "FIELD_ENCRYPTION_KEY",
+                          "secretRef": "field-encryption-key"
+                        },
+                        {
+                          "name": "STEAM_WEB_API_KEY",
+                          "secretRef": "steam-api-key"
+                        },
+                        {
+                          "name": "ENABLE_SYNTHETIC_FALLBACK",
+                          "value": "false"
+                        },
+                        {
+                          "name": "ENABLE_EVIDENCE_UPLOADS",
+                          "value": "false"
+                        },
+                        {
+                          "name": "ENABLE_CHECKOUT",
+                          "value": "false"
+                        }
+                      ],
+                      "resources": {
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
+                      },
+                      "probes": [
+                        {
+                          "type": "Startup",
+                          "httpGet": {
+                            "path": "/health/live",
+                            "port": 3000,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 5,
+                          "failureThreshold": 12
+                        },
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health/live",
+                            "port": 3000,
+                            "scheme": "HTTP"
+                          },
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health/ready",
+                            "port": 3000,
+                            "scheme": "HTTP"
+                          },
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": "[parameters('minReplicas')]",
+                    "maxReplicas": "[parameters('maxReplicas')]",
+                    "rules": [
+                      {
+                        "name": "http-scaling",
+                        "http": {
+                          "metadata": {
+                            "concurrentRequests": "50"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/containerApps', format('ca-forevergames-{0}-web', parameters('environment')))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[format('ca-forevergames-{0}-web', parameters('environment'))]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', format('ca-forevergames-{0}-web', parameters('environment'))), '2024-03-01', 'full').identity.principalId]"
+            },
+            "fqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', format('ca-forevergames-{0}-web', parameters('environment'))), '2024-03-01').configuration.ingress.fqdn]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "appEnvironment",
+        "identities",
+        "registry",
+        "roles",
+        "vault"
+      ]
+    },
+    "publicDns": {
+      "condition": "[and(parameters('deployApplication'), parameters('configureDns'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "public-dns",
+      "resourceGroup": "[parameters('dnsZoneResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "zoneName": {
+            "value": "[parameters('dnsZoneName')]"
+          },
+          "containerAppFqdn": {
+            "value": "[reference('app').outputs.fqdn.value]"
+          },
+          "verificationId": {
+            "value": "[parameters('dnsVerificationId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "17919995890314921460"
+            }
+          },
+          "parameters": {
+            "zoneName": {
+              "type": "string"
+            },
+            "containerAppFqdn": {
+              "type": "string"
+            },
+            "verificationId": {
+              "type": "string",
+              "defaultValue": ""
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/dnsZones/CNAME",
+              "apiVersion": "2018-05-01",
+              "name": "[format('{0}/{1}', parameters('zoneName'), '@')]",
+              "properties": {
+                "TTL": 300,
+                "CNAMERecord": {
+                  "cname": "[parameters('containerAppFqdn')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Network/dnsZones/CNAME",
+              "apiVersion": "2018-05-01",
+              "name": "[format('{0}/{1}', parameters('zoneName'), 'www')]",
+              "properties": {
+                "TTL": 300,
+                "CNAMERecord": {
+                  "cname": "[parameters('containerAppFqdn')]"
+                }
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('verificationId')))]",
+              "type": "Microsoft.Network/dnsZones/TXT",
+              "apiVersion": "2018-05-01",
+              "name": "[format('{0}/{1}', parameters('zoneName'), 'asuid')]",
+              "properties": {
+                "TTL": 300,
+                "TXTRecords": [
+                  {
+                    "value": [
+                      "[parameters('verificationId')]"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "app"
+      ]
+    },
+    "budget": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "budget",
+      "location": "[deployment().location]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "budgetName": {
+            "value": "[format('budget-forevergames-{0}', parameters('environment'))]"
+          },
+          "amount": {
+            "value": "[parameters('budgetAmount')]"
+          },
+          "startDate": {
+            "value": "[parameters('budgetStartDate')]"
+          },
+          "contactEmails": {
+            "value": "[parameters('budgetContactEmails')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.45.15.27210",
+              "templateHash": "18163315106614291699"
+            }
+          },
+          "parameters": {
+            "budgetName": {
+              "type": "string"
+            },
+            "amount": {
+              "type": "int"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "contactEmails": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Consumption/budgets",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('budgetName')]",
+              "properties": {
+                "amount": "[parameters('amount')]",
+                "timeGrain": "Monthly",
+                "timePeriod": {
+                  "startDate": "[parameters('startDate')]"
+                },
+                "category": "Cost",
+                "notifications": {
+                  "actual80": {
+                    "enabled": true,
+                    "operator": "GreaterThan",
+                    "threshold": 80,
+                    "thresholdType": "Actual",
+                    "contactEmails": "[parameters('contactEmails')]"
+                  },
+                  "forecast100": {
+                    "enabled": true,
+                    "operator": "GreaterThan",
+                    "threshold": 100,
+                    "thresholdType": "Forecasted",
+                    "contactEmails": "[parameters('contactEmails')]"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "outputs": {
+    "resourceGroupName": {
+      "type": "string",
+      "value": "[parameters('resourceGroupName')]"
+    },
+    "registryName": {
+      "type": "string",
+      "value": "[reference('registry').outputs.name.value]"
+    },
+    "registryLoginServer": {
+      "type": "string",
+      "value": "[reference('registry').outputs.loginServer.value]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[reference('vault').outputs.name.value]"
+    },
+    "postgresServerName": {
+      "type": "string",
+      "value": "[reference('postgres').outputs.name.value]"
+    },
+    "migrationIdentityClientId": {
+      "type": "string",
+      "value": "[reference('identities').outputs.migrationClientId.value]"
+    },
+    "runtimeIdentityClientId": {
+      "type": "string",
+      "value": "[reference('identities').outputs.runtimeClientId.value]"
+    },
+    "containerAppName": {
+      "type": "string",
+      "value": "[if(parameters('deployApplication'), reference('app').outputs.name.value, '')]"
+    },
+    "containerAppFqdn": {
+      "type": "string",
+      "value": "[if(parameters('deployApplication'), reference('app').outputs.fqdn.value, '')]"
+    },
+    "migrationJobName": {
+      "type": "string",
+      "value": "[reference('migrationJob').outputs.name.value]"
+    }
+  }
+}
