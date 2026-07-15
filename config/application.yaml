@@ -1,0 +1,14 @@
+application:
+  name: forever-games
+  port: 3000
+  health:
+    liveness: /health/live
+    readiness: /health/ready
+  logging:
+    format: json
+    level: info
+  security:
+    canonicalHost: myforevergames.com
+    csrfOriginValidation: true
+    syntheticFallback: false
+    localEvidenceUploads: false

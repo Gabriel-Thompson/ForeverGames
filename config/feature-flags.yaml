@@ -1,0 +1,8 @@
+features:
+  checkout: false
+  syntheticFallback: false
+  localEvidenceUploads: false
+  publicRegistration:
+    dev: true
+    staging: false
+    prod: false

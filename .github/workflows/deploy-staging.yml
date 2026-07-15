@@ -1,0 +1,35 @@
+name: Deploy staging
+on:
+  workflow_dispatch:
+permissions: { id-token: write, contents: read }
+concurrency: { group: deploy-staging, cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with: { client-id: '${{ secrets.AZURE_CLIENT_ID }}', tenant-id: '${{ secrets.AZURE_TENANT_ID }}', subscription-id: '${{ secrets.AZURE_SUBSCRIPTION_ID }}' }
+      - uses: docker/login-action@v3
+        with: { registry: '${{ vars.ACR_LOGIN_SERVER }}', username: '${{ secrets.ACR_PUSH_CLIENT_ID }}', password: '${{ secrets.ACR_PUSH_CLIENT_SECRET }}' }
+      - uses: docker/build-push-action@v6
+        with: { context: ., push: true, tags: '${{ vars.ACR_LOGIN_SERVER }}/forever-games-web:${{ github.sha }},${{ vars.ACR_LOGIN_SERVER }}/forever-games-web:staging' }
+      - uses: docker/build-push-action@v6
+        with: { context: ., file: Dockerfile.migrations, push: true, tags: '${{ vars.ACR_LOGIN_SERVER }}/forever-games-migrations:${{ github.sha }}' }
+      - name: Update and run isolated migration job
+        run: |
+          az containerapp job update -g rg-forevergames-staging -n caj-forevergames-staging-migrate --image ${{ vars.ACR_LOGIN_SERVER }}/forever-games-migrations:${{ github.sha }}
+          RESOURCE_GROUP=rg-forevergames-staging MIGRATION_JOB_NAME=caj-forevergames-staging-migrate ./scripts/run-migrations.sh
+      - name: Preserve current traffic while provisioning candidate
+        id: stable
+        run: echo "revision=$(az containerapp revision list -g rg-forevergames-staging -n ca-forevergames-staging-web --query '[?properties.trafficWeight > `0`].name | [0]' -o tsv 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+      - name: Deploy candidate revision
+        env: { POSTGRES_ADMIN_PASSWORD: '${{ secrets.POSTGRES_ADMIN_PASSWORD }}' }
+        run: az deployment sub create --location centralus --template-file infra/main.bicep --parameters infra/parameters/staging.bicepparam imageTag=${{ github.sha }} deployApplication=true stableRevisionName=${{ steps.stable.outputs.revision }}
+      - name: Label and test candidate
+        run: |
+          candidate=$(az containerapp revision list -g rg-forevergames-staging -n ca-forevergames-staging-web --query "sort_by([], &properties.createdTime)[-1].name" -o tsv)
+          az containerapp revision label add -g rg-forevergames-staging -n ca-forevergames-staging-web --revision "$candidate" --label candidate --yes
+          BASE_URL=https://candidate.${{ vars.CONTAINER_APP_FQDN }} ./scripts/smoke-test.sh
+          az containerapp ingress traffic set -g rg-forevergames-staging -n ca-forevergames-staging-web --revision-weight "${candidate}=100"

@@ -1,0 +1,1 @@
+{"properties":{"displayName":"Forever Games - require application and environment tags","policyType":"Custom","mode":"Indexed","parameters":{},"policyRule":{"if":{"anyOf":[{"field":"tags['application']","exists":"false"},{"field":"tags['environment']","exists":"false"}]},"then":{"effect":"audit"}}}}

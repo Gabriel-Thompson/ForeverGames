@@ -1,0 +1,11 @@
+using '../main.bicep'
+param environment='prod'
+param location='centralus'
+param administratorPassword=readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD')
+param imageTag='replace-with-git-sha'
+param deployApplication=false
+param configureDns=false
+param dnsZoneResourceGroup='replace-with-existing-dns-resource-group'
+param dnsZoneName='myforevergames.com'
+param budgetAmount=150
+param budgetStartDate='2026-07-01T00:00:00Z'

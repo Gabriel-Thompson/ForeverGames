@@ -1,0 +1,4 @@
+environment: dev
+scaling: { minReplicas: 0, maxReplicas: 1 }
+database: { sku: Standard_B1ms, storageGiB: 32, backupRetentionDays: 7 }
+features: { checkout: false, publicRegistration: true }

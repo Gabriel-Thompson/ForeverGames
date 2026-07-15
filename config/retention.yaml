@@ -1,0 +1,7 @@
+retention:
+  applicationLogsDays: 30
+  databaseBackupsDays: 7
+  auditEventsDays: 365
+  demandSignalsDays: 730
+  disconnectedProviderCredentialsDays: 0
+  uploadedEvidence: disabled-in-production

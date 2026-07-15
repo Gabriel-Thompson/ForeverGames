@@ -17,6 +17,8 @@ If Docker reports that `dockerDesktopLinuxEngine` cannot be found, Docker Deskto
 
 ## Quality commands
 
+Azure production foundation: [docs/deployment/README.md](docs/deployment/README.md). The files define deployment readiness but do not deploy resources.
+
 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm db:migration:test`, and `pnpm build`.
 
 ## Secret handling
