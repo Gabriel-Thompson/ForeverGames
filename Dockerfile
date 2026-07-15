@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 FROM node:22-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1
-RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
+RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 
 FROM base AS dependencies
 WORKDIR /workspace

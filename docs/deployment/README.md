@@ -4,7 +4,7 @@ This repository defines—but does not deploy—a production foundation for `myf
 
 ## Deployment order
 
-1. Install Azure CLI with Bicep, Docker, Node 22, and pnpm 10.13.1. Run `./scripts/validate-infra.sh`.
+1. Install Azure CLI with Bicep, Docker, Node 22, and pnpm 11.4.0. Run `./scripts/validate-infra.sh`.
 2. Establish GitHub OIDC identities and least-privilege role assignments described in `github-configuration.md`.
 3. Export `ENVIRONMENT` and a generated `POSTGRES_ADMIN_PASSWORD`, then run `bootstrap-azure.sh`. This creates the platform with no web revision.
 4. From a machine or self-hosted runner connected to the VNet, set the five environment variables named in `populate-key-vault.sh` and run it. Do not place values in files, shell history, workflow logs, or Bicep parameter files.
